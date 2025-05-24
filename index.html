@@ -236,8 +236,8 @@
                 this.ctx = this.canvas.getContext('2d');
                 this.n = 8; // Board size
                 this.pieces = new Map(); // Map<string, string> - position to color
-                this.colors = ['#d53f8c', '#38b2ac', '#3182ce', '#d69e2e', '#38a169'];
-                this.colorNames = ['Ruby', 'Teal', 'Sapphire', 'Amber', 'Emerald'];
+                this.colors = ['#FFD700', '#00FFFF', '#FF00FF'];
+                this.colorNames = ['Gold', 'Cyan', 'Magenta'];
                 this.currentColorIndex = 0;
                 this.cellSize = 0;
                 this.boardOffset = { x: 0, y: 0 };
@@ -547,35 +547,56 @@
                     this.ctx.textBaseline = 'middle';
                     
                     if (maxCount > 1 && colorCounts.size === 1) {
-                        // Single color, multiple knights
+                        // Single color, multiple knights - show count
                         this.ctx.fillText(maxCount.toString(), x + this.cellSize/2, y + this.cellSize/2);
-                    } else if (maxCount > 1) {
-                        // Multiple colors with some having multiple knights
-                        this.ctx.fillText('•', x + this.cellSize/3, y + this.cellSize/2);
-                        this.ctx.fillText(maxCount.toString(), x + 2*this.cellSize/3, y + this.cellSize/2);
+                    } else if (colorCounts.size > 1) {
+                        // Multiple different colors - show dot (mixed colors are visually obvious)
+                        this.ctx.fillText('•', x + this.cellSize/2, y + this.cellSize/2);
+                        
+                        // If any color has multiple knights, also show max count
+                        if (maxCount > 1) {
+                            const smallerFont = Math.max(8, this.cellSize * 0.25);
+                            this.ctx.font = `bold ${smallerFont}px Arial`;
+                            this.ctx.fillText(maxCount.toString(), x + 0.75*this.cellSize, y + 0.25*this.cellSize);
+                        }
                     } else {
-                        // Single knights only
+                        // Single knights only - show dot
                         this.ctx.fillText('•', x + this.cellSize/2, y + this.cellSize/2);
                     }
                 });
             }
             
             blendColors(colors) {
+                // Count occurrences of each unique color
                 const colorCounts = new Map();
                 colors.forEach(color => {
                     colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
                 });
                 
+                // If only one unique color, handle intensity based on count
+                if (colorCounts.size === 1) {
+                    const color = colors[0];
+                    const count = colorCounts.get(color);
+                    const rgb = this.hexToRgb(color);
+                    
+                    // Make color more intense with more knights
+                    const intensity = Math.min(1.0, 0.3 + (count * 0.2));
+                    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${intensity})`;
+                }
+                
+                // Multiple colors - blend them
                 let totalR = 0, totalG = 0, totalB = 0, totalWeight = 0;
                 
                 colorCounts.forEach((count, color) => {
                     const rgb = this.hexToRgb(color);
+                    // Multiple instances of same color make it darker/more intense
                     const intensity = Math.min(1.0, 0.3 + (count * 0.2));
+                    const weight = intensity;
                     
-                    totalR += rgb.r * intensity;
-                    totalG += rgb.g * intensity;
-                    totalB += rgb.b * intensity;
-                    totalWeight += intensity;
+                    totalR += rgb.r * weight;
+                    totalG += rgb.g * weight;
+                    totalB += rgb.b * weight;
+                    totalWeight += weight;
                 });
                 
                 if (totalWeight > 0) {
@@ -584,7 +605,12 @@
                     totalB /= totalWeight;
                 }
                 
-                return `rgb(${Math.round(totalR)}, ${Math.round(totalG)}, ${Math.round(totalB)})`;
+                // Clamp values to [0, 255]
+                totalR = Math.max(0, Math.min(255, Math.round(totalR)));
+                totalG = Math.max(0, Math.min(255, Math.round(totalG)));
+                totalB = Math.max(0, Math.min(255, Math.round(totalB)));
+                
+                return `rgb(${totalR}, ${totalG}, ${totalB})`;
             }
             
             hexToRgb(hex) {
