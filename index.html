@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Interactive Knight Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .controls {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: white;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        button {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+        }
+        
+        button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        select {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+        
+        select option {
+            background: #4a5568;
+            color: white;
+        }
+        
+        .color-indicator {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid white;
+            margin-left: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .game-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        
+        canvas {
+            border: 3px solid white;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            touch-action: none;
+        }
+        
+        .stats {
+            color: white;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+            color: white;
+            backdrop-filter: blur(10px);
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .instructions li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            
+            .controls, .instructions {
+                padding: 10px;
+            }
+            
+            button {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .control-row {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">Interactive Knight Board (8×8)</h1>
+    
+    <div class="controls">
+        <div class="control-row">
+            <label>Board Size:</label>
+            <select id="boardSize">
+                <option value="5">5×5</option>
+                <option value="6">6×6</option>
+                <option value="7">7×7</option>
+                <option value="8" selected>8×8</option>
+                <option value="10">10×10</option>
+                <option value="12">12×12</option>
+                <option value="15">15×15</option>
+            </select>
+        </div>
+        
+        <div class="control-row">
+            <span>Current Color:</span>
+            <div style="display: flex; align-items: center;">
+                <button id="changeColor">Change Color</button>
+                <div id="colorIndicator" class="color-indicator"></div>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <button id="resetBoard">Reset Board</button>
+            <button id="toggleHelp">Show/Hide Help</button>
+        </div>
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div class="stats">
+            <span id="pieceCount">Pieces on board: 0</span>
+        </div>
+    </div>
+    
+    <div class="instructions" id="instructions">
+        <h3>How to Play:</h3>
+        <ul>
+            <li><strong>Desktop:</strong> Left click to place/select knight, right click to remove</li>
+            <li><strong>Mobile:</strong> Tap to place knight, long press to remove</li>
+            <li>Change colors to visualize different knight groups</li>
+            <li>Numbers show how many knights of the same color can reach that square</li>
+            <li>Colored highlights show all possible knight moves</li>
+        </ul>
+    </div>
+
+    <script>
+        class KnightBoard {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.n = 8; // Board size
+                this.pieces = new Map(); // Map<string, string> - position to color
+                this.colors = ['#FFD700', '#00FFFF', '#FF00FF', '#FF4500', '#32CD32'];
+                this.colorNames = ['Gold', 'Cyan', 'Magenta', 'Orange', 'Green'];
+                this.currentColorIndex = 0;
+                this.cellSize = 0;
+                this.boardOffset = { x: 0, y: 0 };
+                this.isLongPress = false;
+                this.longPressTimer = null;
+                
+                this.initializeCanvas();
+                this.setupEventListeners();
+                this.updateUI();
+                this.draw();
+                
+                // Handle URL parameters
+                this.handleURLParams();
+            }
+            
+            handleURLParams() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const sizeParam = urlParams.get('size');
+                if (sizeParam && !isNaN(sizeParam)) {
+                    const size = parseInt(sizeParam);
+                    if (size >= 4 && size <= 20) {
+                        document.getElementById('boardSize').value = size;
+                        this.setBoardSize(size);
+                    }
+                }
+            }
+            
+            initializeCanvas() {
+                const maxSize = Math.min(window.innerWidth - 40, window.innerHeight - 300);
+                const canvasSize = Math.max(300, Math.min(600, maxSize));
+                
+                this.canvas.width = canvasSize;
+                this.canvas.height = canvasSize;
+                this.cellSize = canvasSize / this.n;
+                this.boardOffset = { x: 0, y: 0 };
+            }
+            
+            setupEventListeners() {
+                // Mouse events
+                this.canvas.addEventListener('click', (e) => this.handleClick(e));
+                this.canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.handleRightClick(e);
+                });
+                
+                // Touch events
+                this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+                this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+                
+                // UI controls
+                document.getElementById('changeColor').addEventListener('click', () => this.changeColor());
+                document.getElementById('resetBoard').addEventListener('click', () => this.resetBoard());
+                document.getElementById('boardSize').addEventListener('change', (e) => this.setBoardSize(parseInt(e.target.value)));
+                document.getElementById('toggleHelp').addEventListener('click', () => this.toggleHelp());
+                
+                // Keyboard events
+                document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+                
+                // Resize handling
+                window.addEventListener('resize', () => this.initializeCanvas() && this.draw());
+            }
+            
+            handleTouchStart(e) {
+                e.preventDefault();
+                this.isLongPress = false;
+                const touch = e.touches[0];
+                const rect = this.canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                this.longPressTimer = setTimeout(() => {
+                    this.isLongPress = true;
+                    this.handleRightClick({ offsetX: x, offsetY: y });
+                }, 500);
+            }
+            
+            handleTouchEnd(e) {
+                e.preventDefault();
+                clearTimeout(this.longPressTimer);
+                
+                if (!this.isLongPress) {
+                    const touch = e.changedTouches[0];
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    this.handleClick({ offsetX: x, offsetY: y });
+                }
+            }
+            
+            getGridPosition(x, y) {
+                const col = Math.floor(x / this.cellSize);
+                const row = Math.floor(y / this.cellSize);
+                
+                if (col >= 0 && col < this.n && row >= 0 && row < this.n) {
+                    return { row, col };
+                }
+                return null;
+            }
+            
+            positionToKey(row, col) {
+                return `${row},${col}`;
+            }
+            
+            keyToPosition(key) {
+                const [row, col] = key.split(',').map(Number);
+                return { row, col };
+            }
+            
+            positionToNotation(row, col) {
+                return `${String.fromCharCode(97 + col)}${this.n - row}`;
+            }
+            
+            handleClick(e) {
+                const pos = this.getGridPosition(e.offsetX, e.offsetY);
+                if (!pos) return;
+                
+                const key = this.positionToKey(pos.row, pos.col);
+                const currentColor = this.colors[this.currentColorIndex];
+                
+                if (this.pieces.has(key)) {
+                    const pieceColor = this.pieces.get(key);
+                    const notation = this.positionToNotation(pos.row, pos.col);
+                    console.log(`Selected ${this.getColorName(pieceColor)} knight at ${notation}`);
+                    this.logKnightMoves(pos.row, pos.col);
+                } else {
+                    this.pieces.set(key, currentColor);
+                    const notation = this.positionToNotation(pos.row, pos.col);
+                    console.log(`Placed ${this.colorNames[this.currentColorIndex]} knight at ${notation}`);
+                }
+                
+                this.updateUI();
+                this.draw();
+            }
+            
+            handleRightClick(e) {
+                const pos = this.getGridPosition(e.offsetX, e.offsetY);
+                if (!pos) return;
+                
+                const key = this.positionToKey(pos.row, pos.col);
+                if (this.pieces.has(key)) {
+                    const color = this.pieces.get(key);
+                    const notation = this.positionToNotation(pos.row, pos.col);
+                    this.pieces.delete(key);
+                    console.log(`Removed ${this.getColorName(color)} knight from ${notation}`);
+                    this.updateUI();
+                    this.draw();
+                }
+            }
+            
+            getColorName(colorHex) {
+                const index = this.colors.indexOf(colorHex);
+                return index !== -1 ? this.colorNames[index] : 'Unknown';
+            }
+            
+            logKnightMoves(row, col) {
+                const moves = this.getKnightMoves(row, col);
+                console.log(`Can move to ${moves.length} squares:`);
+                moves.forEach(move => {
+                    const notation = this.positionToNotation(move.row, move.col);
+                    console.log(`  - ${notation}`);
+                });
+            }
+            
+            getKnightMoves(row, col) {
+                const moves = [];
+                const knightMoves = [
+                    [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+                    [1, -2], [1, 2], [2, -1], [2, 1]
+                ];
+                
+                knightMoves.forEach(([dr, dc]) => {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    if (newRow >= 0 && newRow < this.n && newCol >= 0 && newCol < this.n) {
+                        moves.push({ row: newRow, col: newCol });
+                    }
+                });
+                
+                return moves;
+            }
+            
+            changeColor() {
+                this.currentColorIndex = (this.currentColorIndex + 1) % this.colors.length;
+                this.updateUI();
+                console.log(`Color changed to: ${this.colorNames[this.currentColorIndex]}`);
+            }
+            
+            resetBoard() {
+                this.pieces.clear();
+                this.updateUI();
+                this.draw();
+                console.log('Board reset!');
+            }
+            
+            setBoardSize(size) {
+                this.n = size;
+                this.pieces.clear();
+                this.initializeCanvas();
+                this.updateUI();
+                this.draw();
+                
+                // Update URL
+                const url = new URL(window.location.href);
+                url.searchParams.set('size', size);
+                window.history.replaceState({}, '', url);
+            }
+            
+            toggleHelp() {
+                const instructions = document.getElementById('instructions');
+                instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
+            }
+            
+            handleKeyPress(e) {
+                switch(e.key.toLowerCase()) {
+                    case ' ':
+                        e.preventDefault();
+                        this.changeColor();
+                        break;
+                    case 'r':
+                        this.resetBoard();
+                        break;
+                }
+            }
+            
+            updateUI() {
+                document.getElementById('title').textContent = `Interactive Knight Board (${this.n}×${this.n})`;
+                document.getElementById('colorIndicator').style.backgroundColor = this.colors[this.currentColorIndex];
+                document.getElementById('pieceCount').textContent = `Pieces on board: ${this.pieces.size}`;
+            }
+            
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.drawBoard();
+                this.drawMoveHighlights();
+                this.drawPieces();
+            }
+            
+            drawBoard() {
+                for (let row = 0; row < this.n; row++) {
+                    for (let col = 0; col < this.n; col++) {
+                        const x = col * this.cellSize;
+                        const y = row * this.cellSize;
+                        
+                        this.ctx.fillStyle = (row + col) % 2 === 0 ? '#f0d9b5' : '#b58863';
+                        this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+                        
+                        this.ctx.strokeStyle = '#333';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
+                    }
+                }
+            }
+            
+            drawMoveHighlights() {
+                const moveSquares = new Map(); // Map<string, Array<string>>
+                
+                // Calculate all possible moves
+                this.pieces.forEach((color, key) => {
+                    const { row, col } = this.keyToPosition(key);
+                    const moves = this.getKnightMoves(row, col);
+                    
+                    moves.forEach(move => {
+                        const moveKey = this.positionToKey(move.row, move.col);
+                        if (!moveSquares.has(moveKey)) {
+                            moveSquares.set(moveKey, []);
+                        }
+                        moveSquares.get(moveKey).push(color);
+                    });
+                });
+                
+                // Draw highlights
+                moveSquares.forEach((colors, key) => {
+                    const { row, col } = this.keyToPosition(key);
+                    const x = col * this.cellSize;
+                    const y = row * this.cellSize;
+                    
+                    // Blend colors
+                    const blendedColor = this.blendColors(colors);
+                    
+                    this.ctx.fillStyle = blendedColor;
+                    this.ctx.globalAlpha = 0.6;
+                    this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+                    this.ctx.globalAlpha = 1.0;
+                    
+                    // Draw border
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
+                    
+                    // Count knights of each color
+                    const colorCounts = new Map();
+                    colors.forEach(color => {
+                        colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
+                    });
+                    
+                    // Determine what to display
+                    const maxCount = Math.max(...colorCounts.values());
+                    const fontSize = Math.max(12, this.cellSize * 0.4);
+                    
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = `bold ${fontSize}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    
+                    if (maxCount > 1 && colorCounts.size === 1) {
+                        // Single color, multiple knights
+                        this.ctx.fillText(maxCount.toString(), x + this.cellSize/2, y + this.cellSize/2);
+                    } else if (maxCount > 1) {
+                        // Multiple colors with some having multiple knights
+                        this.ctx.fillText('•', x + this.cellSize/3, y + this.cellSize/2);
+                        this.ctx.fillText(maxCount.toString(), x + 2*this.cellSize/3, y + this.cellSize/2);
+                    } else {
+                        // Single knights only
+                        this.ctx.fillText('•', x + this.cellSize/2, y + this.cellSize/2);
+                    }
+                });
+            }
+            
+            blendColors(colors) {
+                const colorCounts = new Map();
+                colors.forEach(color => {
+                    colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
+                });
+                
+                let totalR = 0, totalG = 0, totalB = 0, totalWeight = 0;
+                
+                colorCounts.forEach((count, color) => {
+                    const rgb = this.hexToRgb(color);
+                    const intensity = Math.min(1.0, 0.3 + (count * 0.2));
+                    
+                    totalR += rgb.r * intensity;
+                    totalG += rgb.g * intensity;
+                    totalB += rgb.b * intensity;
+                    totalWeight += intensity;
+                });
+                
+                if (totalWeight > 0) {
+                    totalR /= totalWeight;
+                    totalG /= totalWeight;
+                    totalB /= totalWeight;
+                }
+                
+                return `rgb(${Math.round(totalR)}, ${Math.round(totalG)}, ${Math.round(totalB)})`;
+            }
+            
+            hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : { r: 0, g: 0, b: 0 };
+            }
+            
+            drawPieces() {
+                this.pieces.forEach((color, key) => {
+                    const { row, col } = this.keyToPosition(key);
+                    const x = col * this.cellSize;
+                    const y = row * this.cellSize;
+                    
+                    // Draw piece background
+                    this.ctx.fillStyle = color;
+                    this.ctx.globalAlpha = 0.8;
+                    this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+                    this.ctx.globalAlpha = 1.0;
+                    
+                    // Draw knight symbol
+                    const fontSize = Math.max(16, this.cellSize * 0.5);
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = `bold ${fontSize}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('♞', x + this.cellSize/2, y + this.cellSize/2);
+                });
+            }
+        }
+        
+        // Initialize the game when the page loads
+        window.addEventListener('load', () => {
+            new KnightBoard();
+        });
+    </script>
+</body>
+</html>
